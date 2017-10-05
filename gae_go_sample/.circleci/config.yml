@@ -1,0 +1,39 @@
+version: 2 # バージョン2を指定する
+jobs:
+ build: # Goのbuildとテストを行う
+  docker: # ベースとなるDocker imageを指定
+   - image: circleci/golang:1.8 # Dockefileのパスを指定(Go1.8を指定)
+  environment:
+   TZ: /usr/share/zoneinfo/Asia/Tokyo # Time Zoneを指定
+  working_directory: /home/circleci/go/src/project # コード実行場所 以下のstepsはworking_directoryで実行される
+  branches:
+   only: # 以下のブランチのみ(workflowの場合は別の場所に記載)
+    - develop
+    - /feature\/.*/
+    - /hotfix\/.*/
+  steps: # ローカルでも必要なものはshell scriptと言う感じで行う
+   - checkout # working_directoryにcheckout
+   - run: # command lineのプログラムを発動させる
+      name: Set PATH to .bashrc. # runには名前をつけることができる。 circle ci 2.0では、environmentでPATHやGOPATHを指定してもうまくいかない。自分で.bashrcに設定する必要がある。
+      command: | # 実際のコマンド 複数行に場合は、 `|` をつける
+       echo 'export PATH=$HOME/go/bin:$HOME/go_appengine:$PATH' >> $BASH_ENV  # $BASH_ENVはデフォルトで入っている
+       source /home/circleci/.bashrc
+   - run:
+      name: Make GOPATH directory. # GOPATHを指定するディレクトリを作成
+      command: mkdir -p $HOME/go/src
+   - run:
+      name: Set GOPATH to .bashrc. # .bashrcにGOPATHを追加。circle ci 2.0では、environmentでPATHやGOPATHを指定してもうまくいかない。自分で.bashrcに設定する必要がある。
+      command: |
+       echo 'export GOPATH=$HOME/go' >> $BASH_ENV  # $BASH_ENVはデフォルトで入っている
+       source /home/circleci/.bashrc
+   - run:
+      name: Install appengine sdk. # appengine SDKをインストール
+      command: |
+       wget https://storage.googleapis.com/appengine-sdks/featured/go_appengine_sdk_linux_amd64-1.9.58.zip
+       unzip go_appengine_sdk_linux_amd64-1.9.58.zip -d $HOME
+   - run:
+      name: Execute setup. # ここでセットアップ用のshellを実行
+      command: PATH/TO/setup.sh
+   - run:
+      name: Run Server Unit Tests. # ここでユニットテストを実行するshellを実行
+      command: PATH/TO/test.sh
